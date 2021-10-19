@@ -57,5 +57,113 @@
 ## 二. 初识RabbitMQ  
  &nbsp;&nbsp;&nbsp;基于AMQP协议，erlang语言开发，是部署最广泛的开源消息中间件,是最受欢迎的开源消息中间件之一  
 ### 1. AMQP协议  
- &nbsp;&nbsp;&nbsp;AMQP是一种协议，更准确的说是一种binary wire-level protocol（链接协议）。这是其和JMS的本质差别，AMQP不从API层进行限定，而是直接定义网络交换的数据格式。这使得实现了AMQP的provider天然性就是跨平台的。以下是AMQP协议模型:
-![](image/2021-10-19-18-26-59.png)
+ &nbsp;&nbsp;&nbsp;AMQP是一种协议，更准确的说是一种binary wire-level protocol（链接协议）。这是其和JMS的本质差别，AMQP不从API层进行限定，而是直接定义网络交换的数据格式。这使得实现了AMQP的provider天然性就是跨平台的。以下是AMQP协议模型:  
+![](image/2021-10-19-18-26-59.png)  
+ &nbsp;&nbsp;&nbsp;如图所示，生产者（Publisher）将消息发送给虚拟主机（Virtual host）中的交换机（Exchange），交换机和消息队列（Message Queue）之间有绑定关系，消费者（Consumer）通过消息队列来消费消息。  
+ ## 三. RabbitMQ配置  
+ ### 1. RabbitMQ管理命令行  
+ #### ①. 服务启动相关  
+- `systemctl start rabbitmq-server`：启动RabbitMQ  
+- `systemctl restart rabbitmq-server`：重启RabbitMQ  
+- `systemctl stop rabbitmq-server`：停止RabbitMQ  
+- `systemctl status rabbitmq-server`：查看RabbitMQ的状态  
+ #### ②. 管理命令行  
+- `rabbitmqctl help` ：查看更多命令，用来在不使用web管理界面情况下命令操作RabbitMQ  
+ #### ③. 插件管理命令行  
+- `rabbitmq-plugins list`：列出所有插件  
+- `rabbitmq-plugins enable`：启动插件  
+- `rabbitmq-plugins disable`：关闭插件  
+### 2.Web管理界面  
+#### (1)Overview概览  
+![](image/2021-10-19-18-35-39.png)  
+- `connections`：无论生产者还是消费者，都需要与RabbitMQ建立连接后才可以完成消息的生产和消费，在这里可以查看连接情况  
+- `channels`：通道，建立连接后，会形成通道，消息的投递获取依赖通道  
+- `Exchanges`：交换机，用来实现消息的路由  
+- `Queues`：队列，即消息队列，消息存放在队列中，等待消费，消费后被移除队列  
+#### (2) Admin用户和虚拟主机管理  
+##### Ⅰ添加用户  
+![](image/2021-10-19-18-44-27.png)  
+上面的Tags选项，其实是指定用户的角色，可选的有以下几个：  
+ &nbsp;&nbsp;&nbsp;超级管理员(administrator)：可登陆管理控制台，可查看所有的信息，并且可以对用户，策略(policy)进行操作  
+ &nbsp;&nbsp;&nbsp;监控者(monitoring)：可登陆管理控制台，同时可以`查看`rabbitmq节点的相关信息(进程数，内存使用情况，磁盘使用情况等)  
+ &nbsp;&nbsp;&nbsp;策略制定者(policymaker)：可登陆管理控制台, 同时可以对policy进行管理。但`无法查看节点的相关信息`(上图红框标识的部分)  
+ &nbsp;&nbsp;&nbsp;普通管理者(management)：`仅可登陆管理控制台`，无法看到节点信息，也无法对策略进行管理  
+ &nbsp;&nbsp;&nbsp;其他：`无法登陆管理控制台`，通常就是普通的生产者和消费者  
+##### Ⅱ 创建虚拟主机  
+![](image/2021-10-19-18-46-33.png)  
+##### Ⅲ 绑定虚拟主机和用户  
+创建好虚拟主机，我们还要给用户添加访问权限：  
+点击添加好的虚拟主机：  
+![](image/2021-10-19-18-46-43.png)  
+进入虚拟机设置界面  
+![](image/2021-10-19-18-46-47.png)  
+## RabbitMQ的第一个程序  
+### 1. AMQP协议回顾  
+![](image/2021-10-19-18-48-50.png)  
+ &nbsp;&nbsp;&nbsp;产者通过通道发送消息，每个生产者对应一个虚拟主机，需要将虚拟主机和用户绑定之后才有访问权限。消息要不要放到交换机中取决于所使用的消息模型，消息不放到交换机时会直接放到消息队列中。消费者和生产者是解耦的，它只关心消息队列中有没有相应的消息，消费者消费消息时也需要连接虚拟主机。  
+### 2. AMQP支持的消息模型  
+![](image/2021-10-19-18-49-18.png)  
+### 3. 使用rabbitmq需要引入的依赖  
+```java  
+<dependency>  
+    <groupId>com.rabbitmq</groupId>  
+    <artifactId>amqp-client</artifactId>  
+    <version>5.7.2</version>  
+</dependency>  
+
+```  
+### 4. 第一种模型（直连）  
+![](image/2021-10-19-18-50-22.png)  
+ &nbsp;&nbsp;&nbsp;在上图的模型中，有以下概念：  
+- P：生产者，也就是要发送消息的程序  
+- C：消费者：消息的接受者，会一直等待消息到来  
+- queue：消息队列，图中红色部分。类似一个邮箱，可以缓存消息；生产者向其中投递消息，消费者从其中取出消息  
+ &nbsp;&nbsp;&nbsp;该模型中只有一个生产者和一个消费者，生产者将消息发送到消息队列，生产者对消息队列进行监听，从消息队列取出消息进行消费。  
+### 5. 第二种模型（work queue）  
+ &nbsp;&nbsp;&nbsp;Work queues，也被称为（Task queues），`任务模型`。当消息处理比较耗时的时候，可能生产消息的速度会远远大于消息的消费速度。长此以往，消息就会堆积越来越多，无法及时处理。此时就可以使用work 模型：让`多个消费者绑定到一个队列，共同消费队列中的消息`。队列中的消息一旦消费，就会消失，因此任务是不会被重复执行的。  
+![](image/2021-10-19-18-52-40.png)
+角色：
+- P：生产者：任务的发布者
+- C1：消费者-1，领取任务并且完成任务，假设完成速度较慢
+- C2：消费者-2：领取任务并完成任务，假设完成速度快
+**:star:** 当多个消费者处理消息的速度不同时，可以关闭自动确认并设置每次能消费的消息个数来实现能者多劳。
+```java
+package workqueue;
+
+import com.rabbitmq.client.*;
+import utils.MQConnection;
+
+import java.io.IOException;
+
+public class Consumer2 {
+    public static void main(String[] args) throws IOException {
+        // 获取连接对象
+        Connection connection = MQConnection.getConnection();
+        // 获取通道对象
+        Channel channel = connection.createChannel();
+        // 每次只能消费1个消息
+        channel.basicQos(1);
+        // 通过通道声明队列
+        channel.queueDeclare("work", true, false, false, null);
+        // 关闭自动确认，需要手动确认
+        channel.basicConsume("work", false, new DefaultConsumer(channel) {
+            @Override
+            public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("消费者2：" + new String(body));
+                // 手动确认
+                // 参数：确认队列中哪个具体消息、是否开启多个消息同时确认
+                channel.basicAck(envelope.getDeliveryTag(), false);
+            }
+        });
+    }
+}
+
+```
+### 6. 第三种模型（fanout）
+
+
