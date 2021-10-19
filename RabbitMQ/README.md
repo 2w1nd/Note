@@ -57,3 +57,5 @@
 ## 二. 初识RabbitMQ  
  &nbsp;&nbsp;&nbsp;基于AMQP协议，erlang语言开发，是部署最广泛的开源消息中间件,是最受欢迎的开源消息中间件之一  
 ### 1. AMQP协议  
+ &nbsp;&nbsp;&nbsp;AMQP是一种协议，更准确的说是一种binary wire-level protocol（链接协议）。这是其和JMS的本质差别，AMQP不从API层进行限定，而是直接定义网络交换的数据格式。这使得实现了AMQP的provider天然性就是跨平台的。以下是AMQP协议模型:
+![](image/2021-10-19-18-26-59.png)
