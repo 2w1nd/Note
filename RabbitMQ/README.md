@@ -121,49 +121,113 @@
  &nbsp;&nbsp;&nbsp;该模型中只有一个生产者和一个消费者，生产者将消息发送到消息队列，生产者对消息队列进行监听，从消息队列取出消息进行消费。  
 ### 5. 第二种模型（work queue）  
  &nbsp;&nbsp;&nbsp;Work queues，也被称为（Task queues），`任务模型`。当消息处理比较耗时的时候，可能生产消息的速度会远远大于消息的消费速度。长此以往，消息就会堆积越来越多，无法及时处理。此时就可以使用work 模型：让`多个消费者绑定到一个队列，共同消费队列中的消息`。队列中的消息一旦消费，就会消失，因此任务是不会被重复执行的。  
-![](image/2021-10-19-18-52-40.png)
-角色：
-- P：生产者：任务的发布者
-- C1：消费者-1，领取任务并且完成任务，假设完成速度较慢
-- C2：消费者-2：领取任务并完成任务，假设完成速度快
-**:star:** 当多个消费者处理消息的速度不同时，可以关闭自动确认并设置每次能消费的消息个数来实现能者多劳。
-```java
-package workqueue;
+![](image/2021-10-19-18-52-40.png)  
+角色：  
+- P：生产者：任务的发布者  
+- C1：消费者-1，领取任务并且完成任务，假设完成速度较慢  
+- C2：消费者-2：领取任务并完成任务，假设完成速度快  
+**:star:** 当多个消费者处理消息的速度不同时，可以关闭自动确认并设置每次能消费的消息个数来实现能者多劳。  
+```java  
+package workqueue;  
 
-import com.rabbitmq.client.*;
-import utils.MQConnection;
+import com.rabbitmq.client.*;  
+import utils.MQConnection;  
 
-import java.io.IOException;
+import java.io.IOException;  
 
-public class Consumer2 {
-    public static void main(String[] args) throws IOException {
-        // 获取连接对象
-        Connection connection = MQConnection.getConnection();
-        // 获取通道对象
-        Channel channel = connection.createChannel();
-        // 每次只能消费1个消息
-        channel.basicQos(1);
-        // 通过通道声明队列
-        channel.queueDeclare("work", true, false, false, null);
-        // 关闭自动确认，需要手动确认
-        channel.basicConsume("work", false, new DefaultConsumer(channel) {
-            @Override
-            public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                System.out.println("消费者2：" + new String(body));
-                // 手动确认
-                // 参数：确认队列中哪个具体消息、是否开启多个消息同时确认
-                channel.basicAck(envelope.getDeliveryTag(), false);
-            }
-        });
-    }
-}
+public class Consumer2 {  
+    public static void main(String[] args) throws IOException {  
+        // 获取连接对象  
+        Connection connection = MQConnection.getConnection();  
+        // 获取通道对象  
+        Channel channel = connection.createChannel();  
+        // 每次只能消费1个消息  
+        channel.basicQos(1);  
+        // 通过通道声明队列  
+        channel.queueDeclare("work", true, false, false, null);  
+        // 关闭自动确认，需要手动确认  
+        channel.basicConsume("work", false, new DefaultConsumer(channel) {  
+            @Override  
+            public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {  
+                try {  
+                    Thread.sleep(1000);  
+                } catch (InterruptedException e) {  
+                    e.printStackTrace();  
+                }  
+                System.out.println("消费者2：" + new String(body));  
+                // 手动确认  
+                // 参数：确认队列中哪个具体消息、是否开启多个消息同时确认  
+                channel.basicAck(envelope.getDeliveryTag(), false);  
+            }  
+        });  
+    }  
+}  
 
-```
-### 6. 第三种模型（fanout）
+```  
+### 6. 第三种模型（fanout）  
+ &nbsp;&nbsp;&nbsp;fanout：扇出，也称为广播  
+![](image/2021-10-19-18-58-00.png)  
+在广播模式下，消息发送流程是这样的：  
+- 可以有多个消费者  
+- 每个消费者有自己的queue（队列）  
+- 每个队列都要绑定到Exchange（交换机）  
+- 生产者发送的消息，只能发送到交换机，交换机来决定要发给哪个队列，生产者无法决定  
+- 交换机把消息发送给绑定过的所有队列  
+- 队列的消费者都能拿到消息。实现一条消息被多个消费者消费  
+### 7. 第四种模型（Routing之订阅模型-Direct）  
+ &nbsp;&nbsp;&nbsp;在Fanout模式中，一条消息，会被所有订阅的队列都消费。但是，在某些场景下，我们希望不同的消息被不同的队列消费。这时就要用到Direct类型的Exchange。  
+![](image/2021-10-19-18-59-44.png)  
+在Direct模型下：  
 
-
+- 队列与交换机的绑定，不能是任意绑定了，而是要指定一个RoutingKey（路由key）  
+- 消息的发送方在 向 Exchange发送消息时，也必须指定消息的 RoutingKey。  
+- Exchange不再把消息交给每一个绑定的队列，而是根据消息的Routing Key进行判断，只有队列的Routingkey与消息的 Routing key完全一致，才会接收到消息  
+- P：生产者，向Exchange发送消息，发送消息时，会指定一个routing key。  
+- X：Exchange（交换机），接收生产者的消息，然后把消息递交给 与routing key完全匹配的队列  
+- C1：消费者，其所在队列指定了需要routing key 为 error 的消息  
+- C2：消费者，其所在队列指定了需要routing key 为 info、error、warning 的消息  
+### 8. 第五种模型（Routing之订阅模型-Topic）
+ &nbsp;&nbsp;&nbsp;Topic类型的Exchange与Direct相比，都是可以根据RoutingKey把消息路由到不同的队列。只不过Topic类型Exchange可以让队列在绑定Routing key的时候使用通配符！这种模型Routingkey 一般都是由一个或多个单词组成，多个单词之间以”.”分割，例如： item.insert
+![](image/2021-10-19-19-00-43.png)
+统配符：
+- *：匹配恰好1个单词
+- #：匹配一个或多个单词
+如:
+- audit.#：匹配audit.irs.corporate或者audit.irs等
+- audit.*：只能匹配audit.irs
+- *.audit.#：中间必须是audit，audit前有一个或多个单词，后有一个单词
+## 四、MQ的应用场景
+### 1. 异步处理
+#### (1) 场景说明
+ &nbsp;&nbsp;&nbsp;用户注册后，需要发注册邮件和注册短信,传统的做法有两种 1.串行的方式 2.并行的方式
+#### (2) 串行方式
+ &nbsp;&nbsp;&nbsp;将注册信息写入数据库后,发送注册邮件,再发送注册短信,以上三个任务全部完成后才返回给客户端。 这有一个问题是,邮件,短信并不是必须的,它只是一个通知,而这种做法让客户端等待没有必要等待的东西
+![](image/2021-10-19-19-06-17.png)
+#### (3) 并行方式
+ &nbsp;&nbsp;&nbsp;将注册信息写入数据库后,发送邮件的同时,发送短信,以上三个任务完成后,返回给客户端,并行的方式能提高处理的时间。
+![](image/2021-10-19-19-06-29.png)
+#### (4) 消息队列
+ &nbsp;&nbsp;&nbsp;假设三个业务节点分别使用50ms,串行方式使用时间150ms,并行使用时间100ms。虽然并行已经提高的处理时间,但是,前面说过,邮件和短信对我正常的使用网站没有任何影响，客户端没有必要等着其发送完成才显示注册成功,应该是写入数据库后就返回. 消息队列: 引入消息队列后，把发送邮件,短信不是必须的业务逻辑异步处理
+![](image/2021-10-19-19-05-50.png)
+ &nbsp;&nbsp;&nbsp;由此可以看出,引入消息队列后，用户的响应时间就等于写入数据库的时间+写入消息队列的时间(可以忽略不计),引入消息队列后处理后,响应时间是串行的3倍,是并行的2倍
+### 2. 应用解耦
+#### (1) 场景
+ &nbsp;&nbsp;&nbsp;双11是购物狂节,用户下单后,订单系统需要通知库存系统,传统的做法就是订单系统调用库存系统的接口.
+![](image/2021-10-19-19-07-13.png)
+#### (2) 缺点
+ &nbsp;&nbsp;&nbsp;当库存系统出现故障时,订单就会失败。 订单系统和库存系统高耦合. 引入消息队列
+![](image/2021-10-19-19-07-31.png)
+#### (3) 订单系统
+ &nbsp;&nbsp;&nbsp;用户下单后,订单系统完成持久化处理,将消息写入消息队列,返回用户订单下单成功。
+#### (4) 库存系统
+ &nbsp;&nbsp;&nbsp;订阅下单的消息,获取下单消息,进行库操作。 就算库存系统出现故障,消息队列也能保证消息的可靠投递,不会导致消息丢失
+### 3. 流量削峰
+#### (1) 场景
+ &nbsp;&nbsp;&nbsp;秒杀活动，一般会因为流量过大，导致应用挂掉,为了解决这个问题，一般在应用前端加入消息队列。
+#### (2) 作用
+- 可以控制活动人数，超过此一定阀值的订单直接丢弃
+- 可以缓解短时间的高流量压垮应用(应用程序按自己的最大处理能力获取订单)
+![](image/2021-10-19-19-09-20.png)
+#### (3) 注意
+- 用户的请求，服务器收到之后，首先写入消息队列，加入消息队列长度超过最大值，则直接抛弃用户请求或跳转到错误页面.
+- 秒杀业务根据消息队列中的请求信息，再做后续处理
