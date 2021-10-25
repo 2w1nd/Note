@@ -123,7 +123,7 @@ boolean evict) {
     if (++size > threshold)
         resize();
     afterNodeInsertion(evict);
-    return null;
+    return null; // 返回null才是添加成功
 }
 ```
 ##### 5. resize扩容方法
@@ -203,4 +203,41 @@ final Node<K,V>[] resize() {
     return newTab;
 }
 ```
-
+#### 添加相同元素源码分析
+##### 1.第二次添加`java`，同样调用add，put，hash
+![](image/2021-10-25-17-15-54.png)
+![](image/2021-10-25-17-16-03.png)
+#### 2.由于第二次添加一样的，所以不会再执行第二个if了，则会执行else中的语句
+![](image/2021-10-25-17-18-23.png)
+```java
+else {
+    Node<K,V> e; K k; // 辅助变量
+    if (p.hash == hash &&
+        ((k = p.key) == key || (key != null && key.equals(k))))
+    // 如果当前索引位置对应的链表的第一个元素和准备添加的key的hash值一样
+    // 并且满足 准备加入的key和p指向的Node结点的key是同一个对象
+    // 或者p指向Node结点 的 key 的 equals（）和准备加入的key比较后相同
+    // 就不能加入
+        e = p;
+    // 再判断 p 是不是一颗红黑树，就调用putTreeVal进行添加
+    else if (p instanceof TreeNode)
+        e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
+    else {
+        // 如果table对应索引位置，已经是一个链表，就使用for循环比较
+        // 1. 依次和该链表的每一个元素比较后，都不相同，则加入到该链表的最后
+        // 2. 依次比较过程中，如果有相同的情况，则直接break
+        for (int binCount = 0; ; ++binCount) {
+            if ((e = p.next) == null) {
+                p.next = newNode(hash, key, value, null);
+                if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
+                // 注意这里会判断该链表是否达到8个结点，达到则转化为红黑树
+                    treeifyBin(tab, hash);
+                break;
+            }
+            if (e.hash == hash &&
+                ((k = e.key) == key || (key != null && key.equals(k))))
+                break;
+            p = e;
+        }
+    }
+```
