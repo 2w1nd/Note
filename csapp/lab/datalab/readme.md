@@ -167,9 +167,9 @@ int isLessOrEqual(int x, int y) {
  * &nbsp;&nbsp;Rating: 4  
  */  
 int logicalNeg(int x) {  
- &nbsp;int negate_x = ~x + 1;  
- &nbsp;int sign = (x | negate_x) >> 31;  
- &nbsp;return sign + 1;  
+  int negate_x = ~x + 1;  
+  int sign = (x | negate_x) >> 31;  
+  return sign + 1;  
 }  
 ```  
 **当x为0时，-x与它进行按位或运算右移31位是0，当x不为0时，-x与它进行按位或运算右移31位一定是-1**  
@@ -227,3 +227,48 @@ int howManyBits(int x) {
 ![](image/2021-10-29-17-01-33.png)  
 **对于负数的处理，需要转化为其`对称`的正数，由于负数转化为正数表示是取反+1，而如果负数包含0，那么他们是不对称（也就是取反+1不会直接得到对称的数）的，需要再-1**  
 ![](image/2021-10-29-17-07-27.png)  
+## 11.求浮点数乘以2的结果  
+```c  
+//float  
+/*  
+ * floatScale2 - Return bit-level equivalent of expression 2*f for  
+ *   floating point argument f.  
+ *   Both the argument and result are passed as unsigned int's, but  
+ *   they are to be interpreted as the bit-level representation of  
+ *   single-precision floating point values.  
+ *   When argument is NaN, return argument  
+ *   Legal ops: Any integer/unsigned operations incl. ||, &&. also if, while  
+ *   Max ops: 30  
+ *   Rating: 4  
+ */  
+unsigned floatScale2(unsigned uf) {  
+  unsigned s = uf & 0x80000000; // 符号位  
+  unsigned exp = (uf & 0x7F800000) >> 23; // 阶码  
+  unsigned frac = uf & 0x7FFFFF; // 小数字段  
+  unsigned ret = 0;  
+  unsigned inf = s | (0xFF << 23);  
+
+  if (exp == 0xFF) return uf; // 特殊值情况 null/inf  
+  if (exp == 0) { // 非规格数，表示数值0或非常接近0的数  
+    if (frac == 0) return uf;  
+    frac = frac << 1;  
+    ret = s | (exp << 23) | frac;  
+    return ret;  
+  }  
+  exp = exp + 1;  // 规格化数  
+  if (exp == 0xFF) return inf;  
+  ret = s | (exp << 23) | frac;  
+  return ret;  
+}  
+```  
+**1. 取出符号位，阶码，小数部分**  
+![](image/2021-10-29-18-14-49.png)  
+**2. 先处理特殊值情况**  
+![](image/2021-10-29-18-16-10.png)  
+**3. 处理非规格化数**  
+![](image/2021-10-29-18-17-20.png)  
+**4. 处理规格化数**  
+![](image/2021-10-29-18-17-46.png)  
+![](image/2021-10-29-18-18-08.png)  
+`处理特殊情况 exp==254`  
+![](image/2021-10-29-18-18-39.png)  
