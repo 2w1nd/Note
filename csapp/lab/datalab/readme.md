@@ -134,19 +134,19 @@ int conditional(int x, int y, int z) {
 **1. 判断y-x是否大于0**
 ```c
 /* 
- * isLessOrEqual - if x <= y  then return 1, else return 0 
- *   Example: isLessOrEqual(4,5) = 1.
- *   Legal ops: ! ~ & ^ | + << >>
- *   Max ops: 24
- *   Rating: 3
+ * isLessOrEqual - if x <= y &nbsp;then return 1, else return 0 
+ * &nbsp;&nbsp;Example: isLessOrEqual(4,5) = 1.
+ * &nbsp;&nbsp;Legal ops: ! ~ & ^ | + << >>
+ * &nbsp;&nbsp;Max ops: 24
+ * &nbsp;&nbsp;Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  int sign = y + (~x) + 1;
-  int s_x = x >> 31;
-  int s_y = y >> 31;
-  int of_1 = (!s_x) & s_y;
-  int of_2 = s_x & (!s_y);
-  return of_2 | ((!of_1) & (!(sign >> 31)));
+ &nbsp;int sign = y + (~x) + 1;
+ &nbsp;int s_x = x >> 31;
+ &nbsp;int s_y = y >> 31;
+ &nbsp;int of_1 = (!s_x) & s_y;
+ &nbsp;int of_2 = s_x & (!s_y);
+ &nbsp;return of_2 | ((!of_1) & (!(sign >> 31)));
 }
 ```
 **1.使用y-x判断**
@@ -155,5 +155,27 @@ int isLessOrEqual(int x, int y) {
 ![](image/2021-10-29-15-02-50.png)
 **3.处理x>0，y<0的溢出情况（这里不需要加~号，因为x < y）**
 ![](image/2021-10-29-15-03-31.png)
+## 9.使用除逻辑非之外操作符来实现逻辑非的功能
+```c
+//4
+/* 
+ * logicalNeg - implement the ! operator, using all of 
+ * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the legal operators except !
+ * &nbsp;&nbsp;Examples: logicalNeg(3) = 0, logicalNeg(0) = 1
+ * &nbsp;&nbsp;Legal ops: ~ & ^ | + << >>
+ * &nbsp;&nbsp;Max ops: 12
+ * &nbsp;&nbsp;Rating: 4 
+ */
+int logicalNeg(int x) {
+ &nbsp;int negate_x = ~x + 1;
+ &nbsp;int sign = (x | negate_x) >> 31;
+ &nbsp;return sign + 1;
+}
+```
+**当x为0时，-x与它进行按位或运算右移31位是0，当x不为0时，-x与它进行按位或运算右移31位一定是-1**
+x=0
+![](image/2021-10-29-15-17-27.png)
+x>0
+![](image/2021-10-29-15-17-40.png)
 
 
