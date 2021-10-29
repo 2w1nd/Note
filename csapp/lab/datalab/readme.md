@@ -135,18 +135,18 @@ int conditional(int x, int y, int z) {
 ```c
 /* 
  * isLessOrEqual - if x <= y &nbsp;then return 1, else return 0 
- * &nbsp;&nbsp;Example: isLessOrEqual(4,5) = 1.
- * &nbsp;&nbsp;Legal ops: ! ~ & ^ | + << >>
- * &nbsp;&nbsp;Max ops: 24
- * &nbsp;&nbsp;Rating: 3
+ * Example: isLessOrEqual(4,5) = 1.
+ * Legal ops: ! ~ & ^ | + << >>
+ * Max ops: 24
+ * Rating: 3
  */
 int isLessOrEqual(int x, int y) {
- &nbsp;int sign = y + (~x) + 1;
- &nbsp;int s_x = x >> 31;
- &nbsp;int s_y = y >> 31;
- &nbsp;int of_1 = (!s_x) & s_y;
- &nbsp;int of_2 = s_x & (!s_y);
- &nbsp;return of_2 | ((!of_1) & (!(sign >> 31)));
+    int sign = y + (~x) + 1;
+    int s_x = x >> 31;
+    int s_y = y >> 31;
+    int of_1 = (!s_x) & s_y;
+    int of_2 = s_x & (!s_y);
+    return of_2 | ((!of_1) & (!(sign >> 31)));
 }
 ```
 **1.使用y-x判断**
@@ -177,5 +177,53 @@ x=0
 ![](image/2021-10-29-15-17-27.png)
 x>0
 ![](image/2021-10-29-15-17-40.png)
+## 10.当使用补码来表示一个数时，最少需要多少比特位
+```c
+/* howManyBits - return the minimum number of bits required to represent x in
+ *             two's complement
+ *  Examples: howManyBits(12) = 5
+ *            howManyBits(298) = 10
+ *            howManyBits(-5) = 4
+ *            howManyBits(0)  = 1
+ *            howManyBits(-1) = 1
+ *            howManyBits(0x80000000) = 32
+ *  Legal ops: ! ~ & ^ | + << >>
+ *  Max ops: 90
+ *  Rating: 4
+ */
+int howManyBits(int x) {
+  int flag;
+  int cnt_16, cnt_8, cnt_4, cnt_2, cnt_1, cnt_0;
+  int sign = x >> 31; // 判断该数是否为负数
+  x = (sign & (~x)) | (~sign & x);  // 如果是负数，则转化为对称的正数~x，通过sign=0xfffffffff将其赋给x
 
+  // 高16位
+  flag = !!(x >> 16); // 逻辑非！只会出现0/1
+  cnt_16 = flag << 4; // 如果flag为1，则说明高16位是有1的，偏移量+16
+  x = x >> cnt_16; // 将高16位移到低16位，继续判断
 
+  flag = !!(x >> 8);
+  cnt_8 = flag << 3;
+  x = x >> cnt_8;
+
+  flag = !!(x >> 4);
+  cnt_4 = flag << 2;
+  x = x >> cnt_4;
+
+  flag = !!(x >> 2);
+  cnt_2 = flag << 1;
+  x = x >> cnt_2;
+
+  flag = !!(x >> 1);
+  cnt_1 = flag;
+  x = x >> cnt_1;
+
+  cnt_0 = x;
+  return cnt_16 + cnt_8 + cnt_4 + cnt_2 + cnt_1 + cnt_0 + 1;
+}
+```
+**此题可以转化为最高位1的位置，再加上符号位使用类似二分的思想解决，例如，取高16位，通过两次逻辑非运算判断该段是否会有1，若有，则加上16（说明最高位的1在前16位），然后将高16移到后面进行相同操作，若否，那么flag会是0，则不会加上，x也不会移动**
+![](image/2021-10-29-16-12-24.png)
+![](image/2021-10-29-17-01-33.png)
+**对于负数的处理，需要转化为其`对称`的正数，由于负数转化为正数表示是取反+1，而如果负数包含0，那么他们是不对称（也就是取反+1不会直接得到对称的数）的，需要再-1**
+![](image/2021-10-29-17-07-27.png)
