@@ -316,3 +316,244 @@ public class Shutdown {
 }
 ```
 
+## 3. 线程间通信
+
+​	任何一个对象都有一个自己的监视器，当这个对象由同步块或者这个对象的同步方法调用时，执行方法的线程必须先获取到该对象的监视器才能进入同步块或者同步方法，而没有获取到监视器的线程将会阻塞在同步块和同步方法的入口处，进入BLOCKED状态
+
+![image-20211111154041757](image/image-20211111154041757.png)
+
+### 3.1 等待/通知机制
+
+```java
+package Thread;
+
+import utils.SleepUtils;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
+
+public class WaitNotify {
+    static boolean flag = true;
+    static Object lock = new Object();
+
+    public static void main(String[] args) throws InterruptedException {
+        Thread waitThread = new Thread(new Wait(), "WaitThread");
+        waitThread.start();
+        TimeUnit.SECONDS.sleep(1);
+        Thread notifyThread = new Thread(new Notify(), "NotifyThread");
+        notifyThread.start();
+    }
+
+    static class Wait implements Runnable {
+        @Override
+        public void run() {
+            // 加锁，拥有lock的Monitor
+            synchronized (lock) {
+                // 当条件不满足时，继续wait，同时释放了lock的锁
+                while (flag) {
+                    try {
+                        System.out.println(Thread.currentThread() + " flag is true. wait @ "
+                        + new SimpleDateFormat("HH:mm:ss").format(new Date()));
+                        lock.wait(); // 进入等待状态，同时释放了对象的锁
+                    } catch (InterruptedException e) {
+                    }
+                }
+                // 条件满足时，完成工作
+                System.out.println(Thread.currentThread() + " flag is false. running @ " +
+                        new SimpleDateFormat("HH:mm:ss").format(new Date()));
+            }
+        }
+    }
+
+    static class Notify implements Runnable {
+        @Override
+        public void run() {
+            // 加锁，拥有lick的Monitor
+            synchronized (lock) {
+                // 获取lock的锁，然后进行通知，通知时不会释放lock的锁
+                // 直到当前线程释放lock后，WaitThread才能wait方法中返回
+                System.out.println(Thread.currentThread() + " hold lock. notify @" +
+                        new SimpleDateFormat("HH:mm:ss").format(new Date()));
+                lock.notifyAll();
+                flag = false;
+                SleepUtils.second(5);
+            }
+            // 再次加锁
+            synchronized (lock) {
+                System.out.println(Thread.currentThread() + " hold lock again. slepp @" +
+                        new SimpleDateFormat("HH:mm:ss").format(new Date()));
+                SleepUtils.second(5);
+            }
+        }
+    }
+}
+```
+
+​	解释上述代码，`WaitThread`首先获取了对象的锁，然后调用对象的`wait()`方法，从而放弃了锁并进入了对象的等待队列`WaitQueue`中，进入等待状态。由于`WaitThread`释放了对象的锁，`NotifyThread`随后获取了对象的锁，并调用了对象的`notify()`方法，将`WaitThread`从**等待队列**移到**同步队列**中，此时`WaitThread`状态变为**阻塞状态**。等待`NotifyThread`释放锁之后，`WaitThread`再次获得锁并从`wait()`方法返回继续执行
+
+**总结**
+
+1. 使用`wait()`,`notify()`和`notifyAll()`时需要先对调用对象加锁
+2. 调用`wait()`方法后，线程状态由`RUNNING`变为`WAITING`，并将当前线程放置到该对象的等待队列
+3. `notify()`或`notifyAll()`方法调用后，等待线程依旧不会从`wait()`返回，需要`notify()`或`notifyAll()`的线程释放锁之后，等待线程才有机会从`wait()`返回
+4. `notify()`方法将等待队列中的一个等待线程从等待队列移到同步队列中，`notifyAll`方法则是将等待队列中所有的线程全部移到同步队列，被移动的线程状态由`WAITING`变为`BLOCKED`
+5. 从`wait()`方法返回的前提是获得了调用对象的锁
+
+### 3.2 等待/通知的经典范式
+
+**等待方**遵循如下原则：
+
+1. 获取对象的锁
+2. 如果条件不满足，那么调用对象的`wait()`方法，被通知后仍要检查条件
+3. 条件满足则执行相应的逻辑
+
+```java
+synchronized (对象) {
+    while (条件不满足) {
+        对象.wait()
+    }
+    对应处理逻辑
+}
+```
+
+**通知方**遵循如下原则：
+
+1. 获取对象的锁
+2. 改变条件
+3. 通知所有等待在对象的线程
+
+```java
+synchronized (对象) {
+    改变条件
+    对象.notifyAll();
+}
+```
+
+### 3.3 管道输入/输出流
+
+```java
+package Thread;
+
+import java.io.IOException;
+import java.io.PipedReader;
+import java.io.PipedWriter;
+
+public class Piped {
+    public static void main(String[] args) throws IOException {
+        PipedWriter out = new PipedWriter();
+        PipedReader in = new PipedReader();
+        // 将输出流和输入流进行连接，否则在使用时会抛出IOException
+        out.connect(in);;
+        Thread printThread = new Thread(new Print(in), "PrintThread");
+        printThread.start();
+        int receive = 0;
+        try {
+            while ((receive = System.in.read()) != -1) {
+                out.write(receive);
+            }
+        } finally {
+            out.close();
+        }
+    }
+
+    static class Print implements Runnable {
+        private PipedReader in;
+        public Print (PipedReader in) {
+            this.in = in;
+        }
+
+        @Override
+        public void run() {
+            int receive = 0;
+            try {
+                while ((receive = in.read()) != -1) {
+                    System.out.print((char) receive);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+```
+
+​	管道输入/输出主要用于线程之间的数据传输，而传输的媒介为内存
+
+​	如果没有将输入/输出流绑定起来，对于该流的访问将会抛出异常
+
+### 3.4 Thread.join()的使用
+
+`thread.join()`：当前线程A等待`Thread`线程终止之后才从`Thread.join()`返回
+
+```java
+package Thread;
+
+import java.util.concurrent.TimeUnit;
+
+public class Join {
+    public static void main(String[] args) throws InterruptedException {
+        Thread previous = Thread.currentThread();
+        for (int i = 0; i < 10; i++) {
+            // 每个线程拥有前一个线程的引用，需要等待前一个线程终止，才能从等待中返回
+            Thread thread = new Thread(new Domino(previous), String.valueOf(i));
+            thread.start();
+            previous = thread;
+        }
+        TimeUnit.SECONDS.sleep(5);
+        System.out.println(Thread.currentThread().getName() + " terminate.");
+    }
+
+    static class Domino implements Runnable {
+        private Thread thread;
+        public Domino(Thread thread) {
+            this.thread = thread;
+        }
+
+        @Override
+        public void run() {
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+            }
+            System.out.println(Thread.currentThread().getName() + " terminate.");
+        }
+    }
+}
+```
+
+### 3.5 ThreadLocal的使用
+
+​	ThreadLocal，即线程变量，是一个以ThreadLocal对象为键，任意对象为值的存储结构。
+
+```java
+package Thread;
+
+import java.lang.*;
+import java.util.concurrent.TimeUnit;
+
+public class Profiler {
+    // 第一次调用get()会进行初始化，如果没有使用set方法进行，每个线程会调用一个
+    private static final ThreadLocal<Long> TIME_THREADLOCAL = new ThreadLocal<Long>() {
+        @Override
+        protected Long initialValue() {
+            return System.currentTimeMillis();
+        }
+    };
+
+    public static final void begin() {
+        TIME_THREADLOCAL.set(System.currentTimeMillis());
+    }
+
+    public static final long end() {
+        return System.currentTimeMillis() - TIME_THREADLOCAL.get();
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        Profiler.begin();
+        TimeUnit.SECONDS.sleep(1);
+        System.out.println("Cost：" + Profiler.end() + " mills");
+    }
+}
+```
+
