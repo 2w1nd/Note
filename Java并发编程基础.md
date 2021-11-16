@@ -557,3 +557,185 @@ public class Profiler {
 }
 ```
 
+## 4. 线程应用实例
+
+### 4.1 等待超时模式
+
+​	调用一个方法等待一段时间，如果该方法在给定的时间段之内得到结果，那么将结果立刻返回，反之，超时返回默认结果。
+
+### 4.2 一个简单的数据库连接池实例
+
+​	在实例中模拟从连接池中获取，使用和释放连接的过程，而客户端获取连接的过程被设定为'`等待超时`的模式。
+
+​	连接池通过双向队列来维护连接，调用方需要先调用`fetchConnection(long)`方法来指定在多少毫秒内超时获取连接
+
+​	当连接使用完成后，需要调用`releaseConnection(Connection)`方法将连接放回线程池
+
+```java
+package Thread.connection;
+
+import java.sql.Connection;
+import java.util.LinkedList;
+
+public class ConnectionPool {
+    private LinkedList<Connection> pool = new LinkedList<Connection>();
+
+    public ConnectionPool(int initialSize) {
+        if (initialSize > 0) {
+            for (int i = 0; i < initialSize; i ++) {
+                pool.addLast(ConnectionDriver.createConnection());
+            }
+        }
+    }
+
+    public void releaseConnection(Connection connection) {
+        if (connection != null) {
+            synchronized (pool) {
+                // 连接释放后需要进行通知，这样其他消费者能够感知到连接池中归还了一个连接
+                pool.addLast(connection);
+                pool.notifyAll();
+            }
+        }
+    }
+
+    // 在mills内无法获取到连接，将会返回null
+    public Connection fetchConnection(long mills) throws InterruptedException {
+        synchronized (pool) {
+            // 完全超时
+            if (mills <= 0) {
+                while (pool.isEmpty()) {
+                    pool.wait(); // 直到notifyall触发
+                }
+                return pool.removeFirst();
+            } else {
+                long future = System.currentTimeMillis() + mills;
+                long remaining = mills;
+                while (pool.isEmpty() && remaining > 0) { // 如果线程池为空并且剩余时间大于0
+                    pool.wait(remaining);
+                    remaining = future - System.currentTimeMillis();
+                }
+                Connection result = null;
+                if (!pool.isEmpty()) {
+                    result = pool.removeFirst();
+                }
+                return result;
+            }
+        }
+    }
+}
+```
+
+```java
+package Thread.connection;
+
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.sql.Connection;
+import java.util.concurrent.TimeUnit;
+
+public class ConnectionDriver {
+    static class ConnectionHandler implements InvocationHandler {
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            if (method.getName().equals("commit")) {
+                TimeUnit.MILLISECONDS.sleep(100);
+            }
+            return null;
+        }
+    }
+
+    // 创建一个Connection的代理，在commit时休眠100毫秒
+    public static final Connection createConnection() {
+        // 参数一：类加载器 参数二：Class对象数组 参数三：调用处理器（代理对象具体的行为）
+        return (Connection) Proxy.newProxyInstance(ConnectionDriver.class.getClassLoader(), new Class<?>[] {Connection.class}, new ConnectionHandler());
+    }
+
+    /**
+     * 动态代理：根据不同的本体生成不同的代理类
+     * public Object invoke(Object proxy, Method method, Object[] args) throws Throwable
+     * method是指原有实体，proxy是代理类
+     * JDK ：要求本体必须实现接口
+     * CGLib：不要求
+     */
+}
+```
+
+```java
+package Thread.connection;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class ConnectionPoolTest {
+    static ConnectionPool pool = new ConnectionPool(10);
+    // 保证所有的ConnectionRunner能够同时开始
+    static CountDownLatch start = new CountDownLatch(1);
+    // main线程将会等待所有ConnectionRunner结束后才能继续执行
+    static CountDownLatch end;
+
+    public static void main(String[] args) throws InterruptedException {
+        // 线程数量，可修改线程数量观察
+        int threadCount = 20;
+        end = new CountDownLatch(threadCount);
+        int count = 20;
+        AtomicInteger got = new AtomicInteger();
+        AtomicInteger notGot = new AtomicInteger();
+        for (int i = 0; i < threadCount; i++) {
+            Thread thread = new Thread(new ConnectionRunner(count, got, notGot), "ConnectionRunnerThread");
+            thread.start();
+        }
+        start.countDown();
+        end.await(); // 能够阻塞线程 直到调用N次end.countDown() 方法才释放线程，阻塞ConnectionRunner
+        System.out.println("total invoke：" + (threadCount * count)); // 线程数 * 每次获取线程的数量
+        System.out.println("got connection：" + got);
+        System.out.println("not got connection " + notGot);
+    }
+
+    static class ConnectionRunner implements Runnable {
+        int count;
+        AtomicInteger got;
+        AtomicInteger notGot;
+
+        public ConnectionRunner(int count, AtomicInteger got, AtomicInteger notGot) {
+            this.count = count;
+            this.got = got;
+            this.notGot = notGot;
+        }
+
+        @Override
+        public void run() {
+            try {
+                start.await(); // 阻塞主线程的
+            } catch (Exception ex) {
+            }
+            while (count > 0) {
+                try {
+                    // 从线程池中获取连接，如果1000ms内无法获取到，将会返回null
+                    // 分别统计连接获取的数量got和未获取到的数量notGot
+                    Connection connection = pool.fetchConnection(1000);
+                    if (connection != null) {
+                        try {
+                            connection.createStatement();
+                            connection.commit();
+                        } finally {
+                            pool.releaseConnection(connection);
+                            got.incrementAndGet();
+                        }
+                    } else {
+                        notGot.incrementAndGet();
+                    }
+                } catch (InterruptedException | SQLException e) {
+                    e.printStackTrace();
+                } finally {
+                    count --;
+                }
+            }
+            end.countDown();
+        }
+    }
+}
+```
+
