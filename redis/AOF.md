@@ -52,7 +52,7 @@ struct redisServer{
 
 ​	详细步骤如下：
 
-​		![image-20211122193751390](image/image-20211122193751390.png)
+​		![image-20211122193751390](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211122193751390.png)
 
 ## AOF重写
 
@@ -99,7 +99,7 @@ RPUSH list "B" "C"
 
 ​	为了解决这种问题，Redis服务器设置了一个AOF重写缓冲区，这个缓冲区在服务器创建子进程之后开始使用，当Redis服务器执行完一个写命令之后，它会同时将这个写命令发送给AOF缓冲区和AOF重写缓冲区
 
-![image-20211122201102196](image/image-20211122201102196.png)
+![image-20211122201102196](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211122201102196.png)
 
 ​	当子进程完成AOF重写工作之后，它会向父进程发送一个信号，父进程在接到该信号之后，会调用一个信号处理函数，并执行以下工作
 
