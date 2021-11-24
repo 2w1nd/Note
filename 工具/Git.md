@@ -87,7 +87,7 @@ git reflog # 查看命令历史，方便重返未来
 
 .git是Git的版本库，有个称为stage的暂存区，还有git为我们创建的第一个分支`master`.以及指向`master`的一个指针`HEAD`
 
-![image-20211124110930857](image/image-20211124110930857.png)
+![image-20211124110930857](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211124110930857.png)
 
 ​	`git add`将文件添加进去，也就是将文件添加到暂存区
 
@@ -147,19 +147,19 @@ git clone
 
 ## 创建并合并分支
 
-![image-20211124130206814](image/image-20211124130206814.png)
+![image-20211124130206814](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211124130206814.png)
 
 `master`分支是一条线，`Git`用`master`指向最新的提交，再用`HEAD`指向`master`
 
-![image-20211124130214127](image/image-20211124130214127.png)
+![image-20211124130214127](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211124130214127.png)
 
 创建一个新的分支，则是新建了一个指针`dev`，指向`master`相同的提交，再把`HEAD`指向`dev`，就表示当前分支在`dev`上
 
-![image-20211124130220498](image/image-20211124130220498.png)
+![image-20211124130220498](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211124130220498.png)
 
 `dev`指针往前移动一步，而`master`指针不变
 
-![image-20211124130228692](image/image-20211124130228692.png)
+![image-20211124130228692](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211124130228692.png)
 
 Git怎么合并呢？最简单的方法，就是直接把`master`指向`dev`的当前提交
 
@@ -217,7 +217,7 @@ git switch master
 
 冲突产生的原因：`master`分支和`feature1`分支各自都分别有新的提交
 
-![image-20211124133055368](image/image-20211124133055368.png)
+![image-20211124133055368](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211124133055368.png)
 
 使用`git status`查看冲突的文件
 
@@ -245,11 +245,11 @@ git merge --no-ff -m "merge with no-ff" dev
 git log --graph --pretty=oneline --abbrev-commit
 ```
 
-![image-20211124134545942](image/image-20211124134545942.png)
+![image-20211124134545942](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211124134545942.png)
 
 一般在`dev`上干活，预发布时在合并到`master`分支上：
 
-![image-20211124134642582](image/image-20211124134642582.png)
+![image-20211124134642582](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211124134642582.png)
 
 ## BUG分支
 
@@ -353,7 +353,7 @@ git branch --set-upstream-to=origin/dev dev
 
 [Git - 变基 (git-scm.com)](https://git-scm.com/book/zh/v2/Git-分支-变基)
 
-![image-20211124152151470](image/image-20211124152151470.png)
+![image-20211124152151470](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211124152151470.png)
 
 ​	`merge`会将两个分支合并并生成一个新的提交
 
