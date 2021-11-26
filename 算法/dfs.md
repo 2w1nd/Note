@@ -62,3 +62,41 @@ public:
 };
 ```
 
+#### [剑指 Offer 38. 字符串的排列](https://leetcode-cn.com/problems/zi-fu-chuan-de-pai-lie-lcof/)
+
+```cpp
+class Solution {
+public:
+
+    string path;
+    vector<string> res;
+    bool used[20];
+
+    void dfs(string s, int x) {
+        if (x == s.size()) {
+            res.push_back(path);
+            return ;
+        }
+
+        for (int i = 0; i < s.size(); i ++) {
+            if (i > 0 && s[i - 1] == s[i] && used[i - 1] == false) continue;  // 去重	
+            if (!used[i]) {
+                path += s[i];
+                used[i] = true;
+                dfs(s, x + 1);
+                path.pop_back();
+                used[i] = false;
+            }
+        }
+    }
+
+    vector<string> permutation(string s) {
+        path.clear();
+        res.clear();
+        sort(s.begin(), s.end());
+        dfs(s, 0);
+        return res;
+    }   
+};
+```
+
