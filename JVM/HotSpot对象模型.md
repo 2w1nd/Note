@@ -2,7 +2,7 @@
 
 ## 1 对象的创建
 
-![image-20211130194545045](image/image-20211130194545045.png)
+![image-20211130194545045](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211130194545045.png)
 
 ### 1.1 类加载检查
 
@@ -14,7 +14,7 @@
 
 ​	**选择哪种分配方式由Java堆是否规整决定，而 Java 堆是否规整又由所采用的垃圾收集器是否带有压缩整理功能决定**。
 
-**内存分配的两种方式**![image-20211130195638707](image/image-20211130195638707.png)
+**内存分配的两种方式**![image-20211130195638707](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211130195638707.png)
 
 **内存分配并发问题**	
 
@@ -51,9 +51,9 @@
 
 1. 句柄：使用句柄的方式的话，Java堆中会划出一块内存来作为句柄池，`reference`中存储的就是对象的句柄地址，句柄包含对象实例数据与类型数据各自的具体地址信息
 
-​	![image-20211130202532654](image/image-20211130202532654.png)
+​	![image-20211130202532654](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211130202532654.png)
 
-2. 直接指针：如果使用直接指针访问，那么Java堆对象的布局中就必须考虑如何放置访问类型数据的相关信息，而`reference`中存储的就是对象的地址。![image-20211130202708689](image/image-20211130202708689.png)
+2. 直接指针：如果使用直接指针访问，那么Java堆对象的布局中就必须考虑如何放置访问类型数据的相关信息，而`reference`中存储的就是对象的地址。![image-20211130202708689](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211130202708689.png)
 
 ## 字符串常量池常见问题
 
@@ -124,7 +124,7 @@ String str3 = new String("abcd");
 
 **所有整型包装类对象之间值的比较，全部使用 equals 方法比较**。
 
-![image-20211130205442975](image/image-20211130205442975.png)
+![image-20211130205442975](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211130205442975.png)
 
 
 

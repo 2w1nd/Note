@@ -6,11 +6,11 @@
 
 **JDK1.8之前**
 
-![image-20211129210852148](image/image-20211129210852148.png)
+![image-20211130193536099](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211130193536099.png)
 
 **JDK1.8**
 
-![image-20211129210941485](image/image-20211129210941485.png)
+![image-20211130193547527](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211130193547527.png)
 
 线程私有的：`程序计数器`，`虚拟机栈`，`本地方法栈`
 
@@ -62,13 +62,13 @@
 2. 老生代
 3. 永久代
 
-![image-20211130184925444](image/image-20211130184925444.png)
+![image-20211130193610232](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211130193610232.png)
 
 ​	Eden区和两个Survivor区都属于新生代
 
 JDK8版本之后，永久代被移除了，取而代之的是元空间，元空间使用的是直接内存
 
-![image-20211130185052569](image/image-20211130185052569.png)
+![image-20211130193445824](https://gitee.com/w1nd1/pic-go-pic/raw/master/blog/image-20211130193445824.png)
 
 ​	大部分情况，对象都会首先在 Eden 区域分配，在一次新生代垃圾回收后，如果对象还存活，则会进入 s0 或者 s1，并且对象的年龄还会加 1(Eden 区->Survivor 区后对象的初始年龄变为 1)，当它的年龄增加到一定程度（默认为 15 岁），就会被晋升到老年代中。对象晋升到老年代的年龄阈值，可以通过参数 `-XX:MaxTenuringThreshold` 来设置。
 
@@ -117,6 +117,111 @@ JDK 1.8 的时候，方法区（HotSpot 的永久代）被彻底移除了（JDK1
 ​	**直接内存并不是虚拟机运行时数据区的一部分，也不是虚拟机规范中定义的内存区域，但是这部分内存也被频繁地使用。而且也可能导致 OutOfMemoryError 错误出现。**
 
 ​	JDK1.4 中新加入的 **NIO(New Input/Output) 类**，引入了一种基于**通道（Channel）\**与\**缓存区（Buffer）\**的 I/O 方式，它可以直接使用 Native 函数库直接分配堆外内存，然后通过一个存储在 Java 堆中的 DirectByteBuffer 对象作为这块内存的引用进行操作。这样就能在一些场景中显著提高性能，因为\**避免了在 Java 堆和 Native 堆之间来回复制数据**。
+
+```cpp
+#include "semaphore.h"
+
+    // 使用信号量保证同时只有一个打印方法在运行, 第一个运行的打印方法必定是 number() 方法
+    // 当一个打印完成时, 递增当前数字, 并判断要唤醒哪个打印方法继续执行
+    // 可选方法是控制信号量的初始值, 并根据数字是否可以被 3/5/3、5同时整除来控制信号量的值
+    // 从而唤醒对应的方法进行打印
+class FizzBuzz {
+private:
+    int n;
+    int num;
+    sem_t signalNumber;
+    sem_t signalFizzBuzz;
+    sem_t signalFizz;
+    sem_t signalBuzz;
+public:
+    FizzBuzz(int n) {
+        this->n = n;
+        this->num = 1;
+        sem_init(&signalNumber, 0, 0);
+        sem_init(&signalFizzBuzz, 0, 0);
+        sem_init(&signalFizz, 0, 0);
+        sem_init(&signalBuzz, 0, 0);
+    }
+
+    // printFizz() outputs "fizz".
+    void fizz(function<void()> printFizz) {
+        while (true) {
+            sem_wait(&signalFizz);
+            if (this->num > this->n) {
+                break;
+            }
+            printFizz();
+            turn();
+        }
+    }
+
+    // printBuzz() outputs "buzz".
+    void buzz(function<void()> printBuzz) {
+        while (true) {
+            sem_wait(&signalBuzz);
+            if (this->num > this->n) {
+                break;
+            }
+            printBuzz();
+            turn();
+        }
+    }
+
+    // printFizzBuzz() outputs "fizzbuzz".
+	void fizzbuzz(function<void()> printFizzBuzz) {
+        while (true) {
+            sem_wait(&signalFizzBuzz);
+            if (this->num > this->n) {
+                break;
+            }
+            printFizzBuzz();
+            turn();
+        }
+    }
+
+    // printNumber(x) outputs "x", where x is an integer.
+    void number(function<void(int)> printNumber) {
+        while (true) {
+            if (this->num > this->n) {
+                break;
+            }
+            printNumber(this->num);
+            turn();
+            sem_wait(&signalNumber);
+        }
+    }
+
+    // 递增当前数字, 并根据数值递增对应的信号量, 从而唤醒对应方法继续执行
+    void turn() {
+        ++this->num;
+        // 特殊情况, 打印完了所有数字, 要唤醒所有的等待线程, 使它们退出循环
+        if (this->num > this->n) {
+            sem_post(&signalFizz);
+            sem_post(&signalBuzz);
+            sem_post(&signalFizzBuzz);
+            sem_post(&signalNumber);
+        } else {
+            if (this->num % 3 == 0) {
+                if (this->num % 5 == 0) {
+                    sem_post(&signalFizzBuzz);
+                } else {
+                    sem_post(&signalFizz);
+                }
+            } else if (this->num % 5 == 0) {
+                sem_post(&signalBuzz);
+            } else {
+                sem_post(&signalNumber);
+            }
+        }
+
+    }
+};
+
+作者：you-yi-mu-bi
+链接：https://leetcode-cn.com/problems/fizz-buzz-multithreaded/solution/c-xin-hao-liang-jie-jue-shun-xu-da-yin-w-621c/
+来源：力扣（LeetCode）
+著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+```
 
 
 
