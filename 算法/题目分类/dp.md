@@ -199,3 +199,76 @@ public:
 };
 ```
 
+#### [1186. 删除一次得到子数组最大和](https://leetcode-cn.com/problems/maximum-subarray-sum-with-one-deletion/)
+
+```cpp
+class Solution {
+public:
+    int maximumSum(vector<int>& arr) {
+        int n = arr.size();
+        vector<vector<int>> dp(n, vector<int>(2, 0));
+        dp[0][0] = arr[0], dp[0][1] = -1e8;
+        for (int i = 1; i < n; i ++) {
+            dp[i][0] = max(dp[i - 1][0] + arr[i], arr[i]);;
+            dp[i][1] = max(dp[i - 1][0], dp[i - 1][1] + arr[i]);
+        }
+        int res = INT_MIN;
+        for (int i = 0; i < n; i ++) {
+            res = max(res, max(dp[i][0], dp[i][1]));
+        }
+        return res;
+    }
+};
+```
+
+#### [300. 最长递增子序列](https://leetcode-cn.com/problems/longest-increasing-subsequence/)
+
+```cpp
+class Solution {
+public:
+    int lengthOfLIS(vector<int>& nums) {
+        int n = nums.size();
+        vector<int> dp(n, 1);
+        for (int i = 1; i < n; i ++)
+            for (int j = 0; j < i; j ++)
+                if (nums[j] < nums[i]) dp[i] = max(dp[i], dp[j] + 1);
+        int res = INT_MIN;
+        for (int i = 0; i < n; i ++) res = max(res, dp[i]);
+        return res;
+    }
+};
+```
+
+#### [368. 最大整除子集](https://leetcode-cn.com/problems/largest-divisible-subset/)
+
+```cpp
+class Solution {
+public:
+    vector<int> largestDivisibleSubset(vector<int>& nums) {
+        int n = nums.size();
+        vector<int> dp(n);
+        sort(nums.begin(), nums.end());
+        int k = 0;
+        for (int i = 0; i < n; i ++) {
+            dp[i] = 1;
+            for (int j = 0; j < i; j ++) 
+                if (nums[i] % nums[j] == 0)
+                    dp[i] = max(dp[i], dp[j] + 1);
+            if (dp[i] > dp[k]) k = i;
+        }
+        vector<int> res;
+        while (true) {
+            res.push_back(nums[k]);
+            if (dp[k] == 1) break;
+            for(int j = 0; j < k; j++){
+                if(nums[k] % nums[j] == 0 && dp[k] == dp[j] + 1){
+                    k = j;
+                    break;
+                }
+            }
+        }
+        return res;
+    }
+};
+```
+
