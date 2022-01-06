@@ -16,3 +16,11 @@
 
 [CS144: 什么，你学不会TCP？那就来自己写一个吧！ - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/175998415)
 
+[TCP Socket通信详细过程 - 张朝锋 - 博客园 (cnblogs.com)](https://www.cnblogs.com/wn1m/p/10983172.html)
+
+[【CS 144】Lab 1: stitching substrings into a byte stream - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/312119914)
+
+[CS144 lab1 TCPReassembler学习笔记 - cono奇犽哒 - 博客园 (cnblogs.com)](https://www.cnblogs.com/MYMYACMer/p/15174126.html)
+
+
+
