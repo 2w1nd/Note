@@ -22,5 +22,5 @@
 
 [CS144 lab1 TCPReassembler学习笔记 - cono奇犽哒 - 博客园 (cnblogs.com)](https://www.cnblogs.com/MYMYACMer/p/15174126.html)
 
-
+[CS144计算机网络 Lab2 | Kiprey's Blog](https://kiprey.github.io/2021/11/cs144-lab2/)
 

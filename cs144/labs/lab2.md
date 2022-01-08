@@ -74,7 +74,7 @@
 
 ### 3.2 实现
 
-​	恭喜您获得正确的包装和展开逻辑。如果可以的话，我们会和你握手的。在本实验室的其余部分，你将实现TCPReceiver。它将(1)接收来自其对等体的段，(2)使用你的StreamReassembler重新组装ByteStream，以及(3)计算确认号(ackno)和窗口大小。ackno和窗口大小最终将在传出段中传回给对等体。首先，请回顾一下TCP段的格式。这是两个端点相互发送的信息；它是低级数据报的有效载荷。非网格化的字段代表本实验室感兴趣的信息：序列号、有效载荷、SYN和FIN标志。这些是由发送方写入的字段，由接收方读取和处理。
+​	恭喜您获得正确的包装和展开逻辑。如果可以的话，我们会和你握手的。在本实验室的其余部分，你将实现TCPReceiver。它将(1)接收来自其对等体的段，(2)使用你的`StreamReassembler`重新组装`ByteStream`，以及(3)计算确认号(`ackno`)和窗口大小。`ackno`和窗口大小最终将在传出段中传回给对等体。首先，请回顾一下TCP段的格式。这是两个端点相互发送的信息；它是低级数据报的有效载荷。非网格化的字段代表本实验室感兴趣的信息：序列号、有效载荷、SYN和FIN标志。这些是由发送方写入的字段，由接收方读取和处理。
 
 ![image-20220106151709202](image/image-20220106151709202.png)
 
@@ -118,8 +118,8 @@ ByteStream &stream_out(); // implemented for you in .hh file
 
 ​	该方法需要：
 
-- 如有必要，设置初始序列号。设置了SYN标志的第一个到达段的序列号是初始序列号。你要跟踪它，以便在32位包装的seqnos/acknos和它们的绝对等价物之间不断转换。(注意，SYN标志只是头中的一个标志。同样的段也可以携带数据，甚至可以设置FIN标志）。
-- 向`StreamReassembler`推送任何数据或流结束标记。如果在一个`TCPSegment`的头中设置了FIN标志，这意味着有效载荷的最后一个字节是整个流的最后一个字节。请记住，`StreamReassembler`希望流的索引从零开始；你将不得不解开seqnos来产生这些索引
+- 如有必要，设置初始序列号。设置了SYN标志的第一个到达段的序列号是初始序列号。你要跟踪它，以便在32位包装的`seqnos/acknos`和它们的绝对等价物之间不断转换。(注意，SYN标志只是头中的一个标志。同样的段也可以携带数据，甚至可以设置FIN标志）。
+- 向`StreamReassembler`推送任何数据或流结束标记。如果在一个`TCPSegment`的头中设置了FIN标志，这意味着有效载荷的最后一个字节是整个流的最后一个字节。请记住，`StreamReassembler`希望流的索引从零开始；你将不得不解开`seqnos`来产生这些索引
 
 #### 3.2.2 ackno()
 
@@ -127,7 +127,7 @@ ByteStream &stream_out(); // implemented for you in .hh file
 
 #### 3.2.3 window_size()
 
-​	返回 "第一个未装配的 "索引（与ackno对应的索引）和 "第一个不可接受的 "索引之间的距离。
+​	返回 "第一个未装配的 "索引（与`ackno`对应的索引）和 "第一个不可接受的 "索引之间的距离。
 
 ### 3.3 TCPReceiver 在连接生命周期中的演变
 
@@ -136,6 +136,110 @@ ByteStream &stream_out(); // implemented for you in .hh file
 ![image-20220106152356831](image/image-20220106152356831.png)
 
 ## 实验步骤
+
+本实验的第一个要求是实现索引的转化
+
+总共 有三种索引：
+
+- 序列号`seqno`。从ISN起步，包括SYN和FIN，32位循环计数
+- 绝对序列号`absolute seqno`。从0起步，包含SYN和FIN，64位非循环计数
+- 流索引 `stream index`。从0起步。排除SYN和FIN，64位非循环计数
+
+这里我们主要实现的是序列号和绝对序列号之间的转化
+
+QA：为什么会有这种转化要求
+
+​	在我们的`StreamReassembler`中，索引始终从零开始并具有64位-足够我们不必担心会耗尽所有可能的64位索引。 但是，在TCP中，传输的序列号为32位，如果流足够长，则将环绕。 （TCP中的流可以任意长-可以发送的`ByteStream`的长度没有限制TCP。 因此包装非常常见。）
+
+```cpp
+// 绝对 -> 相对
+WrappingInt32 wrap(uint64_t n, WrappingInt32 isn) {
+    DUMMY_CODE(n, isn);
+    return WrappingInt32(static_cast<uint32_t>(n) + isn.raw_value());
+}
+// 相对 -> 绝对
+uint64_t unwrap(WrappingInt32 n, WrappingInt32 isn, uint64_t checkpoint) {
+    DUMMY_CODE(n, isn, checkpoint);
+    uint32_t offset = n.raw_value() - isn.raw_value();
+    uint64_t t = (checkpoint & 0xFFFFFFFF00000000) + offset;
+    uint64_t ret = t;
+    if (abs(int64_t(t + (1ul << 32) - checkpoint)) < abs(int64_t(t - checkpoint))) {
+        ret = t + (1ul << 32);
+    }
+    if (t >= (1ul << 32) && abs(int64_t(t - (1ul << 32) - checkpoint)) < abs(int64_t(ret - checkpoint))) {
+        ret = t - (1ul << 32);
+    }
+    return ret;
+}
+```
+
+下一个是实现一些函数来完善TCPReceiver
+
+- `segment_received()`: 该函数将会在每次获取到 TCP 报文时被调用。该函数需要完成：
+
+    - 如果接收到了 SYN 包，则设置 ISN 编号。
+
+        注意：SYN 和 FIN 包**仍然可以携带用户数据并一同传输**。同时，**同一个数据包下既可以设置 SYN 标志也可以设置 FIN 标志**。
+
+    - 将获取到的数据传入流重组器，并在接收到 FIN 包时终止数据传输。
+
+- `ackno()`：返回接收方**尚未获取到的第一个字节的字节索引**。如果 ISN 暂未被设置，则返回空。
+
+- `window_size()`：返回接收窗口的大小，即**第一个未组装的字节索引**和**第一个不可接受的字节索引**之间的长度。
+
+对于 TCPReceiver 来说，除了错误状态以外，它一共有3种状态，分别是：
+
+- LISTEN：等待 SYN 包的到来。若在 SYN 包到来前就有其他数据到来，则**必须丢弃**。
+- SYN_RECV：获取到了 SYN 包，此时可以正常的接收数据包
+- FIN_RECV：获取到了 FIN 包，此时务必终止 ByteStream 数据流的输入。
+
+在每次 TCPReceiver 接收到数据包时，我们该如何知道当前接收者处于什么状态呢？可以通过以下方式快速判断：
+
+- 当 isn 还没设置时，肯定是 LISTEN 状态
+- 当 ByteStream.input_ended()，则肯定是 FIN_RECV 状态
+- 其他情况下，是 SYN_RECV 状态
+
+Window Size 是当前的 capacity 减去 ByteStream 中尚未被读取的数据大小，即 reassembler 可以存储的尚未装配的子串索引范围。
+
+![image-20220108142911031](image/image-20220108142911031.png)
+
+​	ackno 的计算必须考虑到 SYN 和 FIN 标志，因为这两个标志各占一个 seqno。故在返回 ackno 时，务必判断当前 接收者处于什么状态，然后依据当前状态来判断是否需要对当前的计算结果加1或加2。而这条准则对 push_substring 时同样适用。
+
+```cpp
+void TCPReceiver::segment_received(const TCPSegment &seg) {
+    DUMMY_CODE(seg);
+    TCPHeader header = seg.header();
+    if (!_set_syn_flag) { // 如果没设置syn
+        if (!header.syn) { // 如果不是syn包
+            return ;
+        }
+        _isn = header.seqno; // 设置初始序列号
+        _set_syn_flag = true; 
+    }
+    uint64_t abs_ackno = _reassembler.stream_out().bytes_written() + 1; // 绝对序列号
+    uint64_t curr_abs_seqno = unwrap(header.seqno, _isn, abs_ackno); // 将相对序列号转化为绝对
+
+    uint64_t stream_index = curr_abs_seqno - 1 + (header.syn);
+    _reassembler.push_substring(seg.payload().copy(), stream_index, header.fin);
+}
+
+optional<WrappingInt32> TCPReceiver::ackno() const { 
+    if (!_set_syn_flag) {
+        return nullopt;
+    }
+    // 如果在listen状态，还需要加上一个syn标志的长度
+    uint64_t abs_ack_no = _reassembler.stream_out().bytes_written() + 1;
+    if (_reassembler.stream_out().input_ended()) {
+        ++ abs_ack_no;
+    }
+    return WrappingInt32(_isn) + abs_ack_no;
+}
+
+size_t TCPReceiver::window_size() const { return _capacity - _reassembler.stream_out().buffer_size(); }
+
+```
+
+
 
 
 
