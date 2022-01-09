@@ -137,3 +137,56 @@ public:
 };
 ```
 
+[213. 打家劫舍 II - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/house-robber-ii/)
+
+```cpp
+class Solution {
+public:
+    int rob(vector<int>& nums) {
+        int n = nums.size();
+        if (n == 1) return nums[0];
+        vector<vector<int>> dp(n, vector<int>(2, 0));
+        
+        // 不选第1间, 0不选，1选
+        for (int i = 1; i < n; i ++) {
+            dp[i][1] = dp[i - 1][0] + nums[i];
+            dp[i][0] = max(dp[i - 1][0], dp[i - 1][1]);
+        }
+        int res1 = max(dp[n - 1][0], dp[n - 1][1]);
+
+        dp[0][1] = nums[0], dp[0][0] = 0;
+        for (int i = 1; i < n - 1; i ++) {
+            dp[i][1] = dp[i - 1][0] + nums[i];
+            dp[i][0] = max(dp[i - 1][0], dp[i - 1][1]);    
+        }
+        int res2 = max(dp[n - 2][0], dp[n - 2][1]);
+        return max(res1, res2);
+    }
+};
+```
+
+[403. 青蛙过河 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/frog-jump/)
+
+```cpp
+class Solution {
+public:
+    bool canCross(vector<int>& stones) {
+        int n = stones.size();
+        if (stones[1] != 1) return false;
+        // dp[i][j]表示跳到位置i步长为j是否可以
+        vector<vector<int>> dp(n + 1, vector<int>(n + 1, 0));
+        dp[1][1] = true;
+        for (int i = 2; i < n; i ++)
+            for (int j = 1; j < i; j ++) {
+                int k = stones[i] - stones[j]; // 步长
+                if(k <= j + 1) {
+                    dp[i][k] = dp[j][k - 1] || dp[j][k] || dp[j][k + 1];
+                }
+            }
+        for (int i = 1; i < n; i ++) 
+            if (dp[n - 1][i]) return true;
+        return false;
+    }
+};
+```
+
