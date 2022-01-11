@@ -1,0 +1,1 @@
+[【政治攻略】2021版毛概第1-7章内容最新变动汇总 - 广东专插本学习网 (zcbjzy.com)](http://www.zcbjzy.com/lkzzll/2712.html)
