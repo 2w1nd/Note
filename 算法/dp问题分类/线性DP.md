@@ -190,3 +190,61 @@ public:
 };
 ```
 
+[576. 出界的路径数 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/out-of-boundary-paths/)
+
+```cpp
+class Solution {
+public:
+
+    const int MOD = (int) 1e9 + 7;
+    int n, m, maxn;
+
+    int dx[4] = {-1, 0, 1, 0}, dy[4] = {0, 1, 0, -1};
+
+    int findPaths(int _m, int _n, int _maxMove, int r, int c) {
+        n = _m, m = _n, maxn = _maxMove;
+        vector<vector<int>> dp(n * m, vector<int>(maxn + 1, 0));
+        // 初始化边缘
+        for (int i = 0; i < n; i ++)
+            for (int j = 0; j < m; j ++) {
+                if (i == 0) add(i, j, dp);
+                if (j == 0) add(i, j, dp);
+                if (i == n - 1) add(i, j, dp);
+                if (j == m - 1) add(i, j, dp);
+            }
+
+        // f[(x,y)][step]=f[(x−1,y)][step−1]+f[(x+1,y)][step−1]+f[(x,y−1)][step−1]+f[(x,y+1)][step−1]
+        for (int k = 1; k <= maxn; k ++) {
+            for (int idx = 0; idx < m * n; idx ++) {
+                vector<int> info(2, 0);
+                info = parseIdx(idx);
+                int x = info[0], y = info[1];
+                for (int i = 0; i < 4; i ++) {
+                    int nx = x + dx[i], ny = y + dy[i];
+                    if (nx < 0 || nx >= n || ny < 0 || ny >= m) continue;
+                    int nidx = getIdx(nx, ny);
+                    dp[idx][k] += dp[nidx][k - 1];
+                    dp[idx][k] %= MOD;
+                }
+            }
+        }
+           
+        return dp[getIdx(r, c)][maxn];
+    }
+
+    void add(int x, int y, vector<vector<int>> &dp) {
+        for (int k = 1; k <= maxn; k ++) {
+            dp[getIdx(x, y)][k] ++;
+        }
+    }
+
+    int getIdx(int x, int y) {
+        return x * m + y;
+    }
+
+    vector<int> parseIdx(int idx) {
+        return vector<int>{idx / m, idx % m};
+    }
+};
+```
+
