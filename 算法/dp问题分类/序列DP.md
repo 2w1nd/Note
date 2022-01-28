@@ -239,3 +239,58 @@ public:
 };
 ```
 
+[673. 最长递增子序列的个数 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/number-of-longest-increasing-subsequence/)
+
+```cpp
+class Solution {
+public:
+    int findNumberOfLIS(vector<int>& nums) {
+        int n = nums.size();
+        vector<int> f(n), g(n); // f 表示 以i结尾的最长上升子序列长度，g 表示 以 i 结尾的最长上升子序列的个数
+        
+        int maxl = 0, cnt = 0; // maxl是最长子序列长度，cnt是子序列个数
+        for (int i = 0; i < n; i ++) {
+            f[i] = g[i] = 1; 
+            for (int j = 0; j < i; j ++) {
+                if (nums[j] < nums[i]) {
+                    if (f[i] < f[j] + 1) f[i] = f[j] + 1, g[i] = g[j];
+                    else if (f[i] == f[j] + 1) g[i] += g[j];
+                } 
+            }
+            if (maxl < f[i]) maxl = f[i], cnt = g[i];
+            else if (maxl == f[i]) cnt += g[i];
+        }
+        return cnt;
+    }
+};
+```
+
+[Loading Question... - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/maximum-sum-of-3-non-overlapping-subarrays/)
+
+
+
+[740. 删除并获得点数 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/delete-and-earn/)
+
+```cpp
+class Solution {
+public:
+    const int N = 1e4 + 10;
+    int deleteAndEarn(vector<int>& nums) {
+        // f[i][j] 表示是否删除 j 数 的 最大点数
+        int n = nums.size();
+        int maxn = 0;
+        vector<int> cnt(N);
+        for(auto x: nums) {
+            cnt[x] ++;
+            maxn = max(maxn, x);
+        }
+        vector<vector<int>> f(maxn + 1, vector<int>(2, 0));
+        for (int i = 1; i <= maxn; i ++) {
+            f[i][0] = max(f[i - 1][0], f[i - 1][1]);
+            f[i][1] = max(f[i][1], f[i - 1][0] + cnt[i] * i);
+        }
+        return max(f[maxn][0], f[maxn][1]);
+    }
+};
+```
+
