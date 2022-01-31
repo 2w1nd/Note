@@ -1,6 +1,6 @@
 # 序列DP
 
-[334. 递增的三元子序列 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/increasing-triplet-subsequence/)
+### [334. 递增的三元子序列 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/increasing-triplet-subsequence/)
 
 ```cpp
 class Solution {
@@ -44,7 +44,7 @@ public:
 };
 ```
 
-[354. 俄罗斯套娃信封问题 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/russian-doll-envelopes/)
+### [354. 俄罗斯套娃信封问题 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/russian-doll-envelopes/)
 
 ```cpp
 class Solution {
@@ -67,7 +67,7 @@ public:
 };
 ```
 
-[368. 最大整除子集 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/largest-divisible-subset/)
+### [368. 最大整除子集 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/largest-divisible-subset/)
 
 ```cpp
 class Solution {
@@ -101,7 +101,7 @@ public:
 };
 ```
 
-[390. 消除游戏 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/elimination-game/)
+### [390. 消除游戏 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/elimination-game/)
 
 ![image-20220126114611818](image/image-20220126114611818.png)
 
@@ -115,7 +115,7 @@ public:
 };
 ```
 
-[446. 等差数列划分 II - 子序列 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/arithmetic-slices-ii-subsequence/submissions/)
+### [446. 等差数列划分 II - 子序列 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/arithmetic-slices-ii-subsequence/submissions/)
 
 [LeetCode 446. 等差数列划分 II - 子序列 - AcWing](https://www.acwing.com/solution/content/61868/)
 
@@ -144,7 +144,7 @@ public:
 };
 ```
 
-[472. 连接词 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/concatenated-words/)
+### [472. 连接词 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/concatenated-words/)
 
 ```cpp
 class Solution {
@@ -191,7 +191,7 @@ public:
 };
 ```
 
-[583. 两个字符串的删除操作 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/delete-operation-for-two-strings/submissions/)
+### [583. 两个字符串的删除操作 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/delete-operation-for-two-strings/submissions/)
 
 ```cpp
 class Solution {
@@ -214,7 +214,8 @@ public:
 };
 ```
 
-[629. K个逆序对数组 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/k-inverse-pairs-array/)
+
+### [629. K个逆序对数组 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/k-inverse-pairs-array/)
 
 [LeetCode 629. K个逆序对数组 - AcWing](https://www.acwing.com/solution/content/18355/)
 
@@ -239,7 +240,7 @@ public:
 };
 ```
 
-[673. 最长递增子序列的个数 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/number-of-longest-increasing-subsequence/)
+### [673. 最长递增子序列的个数 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/number-of-longest-increasing-subsequence/)
 
 ```cpp
 class Solution {
@@ -269,7 +270,7 @@ public:
 
 
 
-[740. 删除并获得点数 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/delete-and-earn/)
+### [740. 删除并获得点数 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/delete-and-earn/)
 
 ```cpp
 class Solution {
@@ -290,6 +291,202 @@ public:
             f[i][1] = max(f[i][1], f[i - 1][0] + cnt[i] * i);
         }
         return max(f[maxn][0], f[maxn][1]);
+    }
+};
+```
+
+### [978. 最长湍流子数组 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/longest-turbulent-subarray/)
+
+```cpp
+// 优化了空间
+class Solution {
+public:
+    int maxTurbulenceSize(vector<int>& arr) {
+        int n = arr.size();
+        // f[i][0/1]表示 以i结尾的数组 元素状态为j的最大湍流子数组长度
+        vector<vector<int>> f(2, vector<int>(2, 0));
+        
+        int ans = 1;
+        f[0][0] = f[0][1] = 1;
+        for (int i = 1; i < n; i ++) {
+            for (int j = 0; j < 2; j ++) f[i % 2][j] = 1;
+            if (arr[i - 1] < arr[i]) f[i % 2][0] = f[(i - 1) % 2][1] + 1;
+            if (arr[i - 1] > arr[i]) f[i % 2][1] = f[(i - 1) % 2][0] + 1;
+            for (int j = 0; j < 2; j ++) ans = max(ans, f[i % 2][j]);
+        }
+        return ans;
+    }
+};
+```
+
+### [1035. 不相交的线 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/uncrossed-lines/submissions/)
+
+```cpp
+class Solution {
+public:
+    int maxUncrossedLines(vector<int>& nums1, vector<int>& nums2) {
+        int n = nums1.size(), m = nums2.size();
+        // f[i][j] 表示 考虑 前 i 个 数字，前 j 个数字组成最大公共子序列长度
+        // 最长公共子序列 是考虑的情况是不一定包含第i个字符的
+        // 例如，我们通常考虑f[i - 1][j]为前i - 1，j个数字的最长子序列，但这里不一定包含第j个，只是可能，所以 f[i - 1][j] 包含 f[i - 1][j - 1];
+        vector<vector<int>> f(n + 1, vector<int>(m + 1, 0));
+        for (int i = 1; i <= n; i ++)
+            for (int j = 1; j <= m; j ++) {
+                f[i][j] = max(f[i - 1][j], f[i][j - 1]);
+                if (nums1[i - 1] == nums2[j - 1]) {
+                    f[i][j] = max(f[i][j], f[i - 1][j - 1] + 1);
+                }
+            }
+        return f[n][m];
+    }
+};
+```
+
+### [1143. 最长公共子序列 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/longest-common-subsequence/)
+
+```cpp
+class Solution {
+public:
+    int longestCommonSubsequence(string text1, string text2) {
+        int n = text1.size(), m = text2.size();
+        vector<vector<int>> f(n + 1, vector<int>(m + 1, 0));
+
+        for (int i = 1; i <= n; i ++)
+            for (int j = 1; j <= m; j ++) {
+                f[i][j] = max(f[i - 1][j], f[i][j - 1]);
+                if (text1[i - 1] == text2[j - 1]) {
+                    f[i][j] = max(f[i][j], f[i - 1][j - 1] + 1);
+                }
+            }
+        return f[n][m];
+    }
+};
+```
+
+### [1218. 最长定差子序列 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/longest-arithmetic-subsequence-of-given-difference/)
+
+```cpp
+class Solution {
+public:
+    // 注意覆盖问题：hash.insert遇到一样的键不会覆盖
+    // 由于 arr长度 为 1e5，不能用两层循环，使用哈希表进行优化
+    int longestSubsequence(vector<int>& arr, int diff) {
+        int n = arr.size();
+        // f[i][j] 表示 前i个数，第i个数选或不选的最长定差子序列长度
+        vector<vector<int>> f(n, vector<int>(2, 0));
+        f[0][1] = 1;
+        unordered_map<int, int> hash;
+        hash[arr[0]] = 0;
+        for (int i = 1; i < n; i ++) {
+            f[i][0] = max(f[i - 1][0], f[i - 1][1]);
+            f[i][1] = 1;
+            int prev = arr[i] - diff;
+            if (hash.count(prev)) {
+                f[i][1] = max(f[i][1], f[hash[prev]][1] + 1);
+            }
+            hash[arr[i]] = i;
+        }
+        return max(f[n - 1][0], f[n - 1][1]);
+    }
+};
+```
+
+### [1473. 粉刷房子 III - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/paint-house-iii/)
+
+```cpp
+class Solution {
+public:
+    const int INF = 0x3f3f3f3f;
+    int minCost(vector<int>& houses, vector<vector<int>>& cost, int n, int m, int t) {
+        // f[i][j][k] 表示 考慮前i个房子，第i个房子粉刷为j，分区数量为k的所有方案中的最小总花费
+        vector<vector<vector<int>>> f(n + 1, vector<vector<int>>(m + 1, vector<int>(t + 1, 0)));
+
+        for (int i = 0; i <= n; i ++)
+            for (int j = 0; j <= m; j ++)
+                f[i][j][0] = INF;
+
+        for (int i = 1; i <= n; i ++) {
+            int color = houses[i - 1]; // 当前房子的颜色
+            for (int j = 1; j <= m; j ++) {
+                for (int k = 1; k <= t; k ++) {
+                    if (k > i) { // 如果分区数量大于房子数，不合法
+                        f[i][j][k] = INF;
+                        continue;
+                    }
+
+                    if (color != 0) { // 当前房子已经染色
+                        if (color == j) { // 只有与当前颜色相同才能被转移
+                            int tmp = INF;
+                            for (int p = 1; p <= m; p ++) { // 与前面颜色不同（可组成分区的情况）
+                                if (p != j) {
+                                    tmp = min(tmp, f[i - 1][p][k - 1]);
+                                }
+                            }
+                            f[i][j][k] = min(f[i - 1][j][k], tmp); // 与前面颜色相同的情况
+                        } else {
+                            f[i][j][k] = INF;
+                        }
+                    } else { // 当前房子未被染色
+                        int u = cost[i - 1][j - 1];
+                        int tmp = INF;
+                        for (int p = 1; p <= m; p ++) { // 与前面颜色不同（可组成分区的情况）
+                            if (p != j) {
+                                tmp = min(tmp, f[i - 1][p][k - 1]);
+                            }
+                        }
+                        f[i][j][k] = min(f[i - 1][j][k], tmp) + u; // 与前面颜色相同的情况
+                    }
+                }
+            }
+        }
+        
+        int ans = INF;
+        for (int i = 1; i <= m; i ++) ans = min(ans, f[n][i][t]);
+        return ans == INF ? -1: ans;
+    }
+};
+```
+
+### [1713. 得到子序列的最少操作次数 - 力扣（LeetCode） (leetcode-cn.com)](https://leetcode-cn.com/problems/minimum-operations-to-make-a-subsequence/)
+
+```cpp
+class Solution {
+public:
+    /*
+        target 6 4 8 1 3 2
+        arr    4 7 6 2 3 8 6 1
+        list   1 0 5 4 2 0 3
+    */
+
+    int minOperations(vector<int>& t, vector<int>& a) {
+        int n = t.size(), m = a.size();
+        unordered_map<int, int> hash;
+        for (int i = 0; i < n; i ++) hash.insert({t[i], i});
+        // 建立 target 和 arr 的映射关系
+        vector<int> list;
+        for (auto x: a) {
+             // 由于target各元素不相同，list中保存了arr与target相同元素的下标，并且递增，故可转化为LIS问题
+            if (hash.count(x))  list.push_back(hash[x]);
+        }
+        int cnt = list.size();
+        // q[i] 表示 长度为i的上升子序列 中末尾元素最小的数
+        vector<int> q(cnt + 1, 0);
+        // 使用LIS的贪心+二分的方法求解，复杂度为nlog(n)
+        // 个人感觉这种优化方式主要是维护一个单调队列，每次加入新的元素，要和之前加入的对比，
+        // 找到比自己小的最后一个数，那么它就可以代替这之前的那个数，因为它更小，更好维护递增序列，
+        // 例如 1 3 5 ，加入1个4（规定长度3），那肯定4替换掉5更好
+        int len = 0;
+        for (int i = 0; i < cnt; i ++) {
+            int l = 0, r = len;
+            while (l < r) {
+                int mid = l + r + 1 >> 1;
+                if (q[mid] < list[i]) l = mid;
+                else r = mid - 1;
+            }
+            q[r + 1] = list[i];
+            if (r + 1 > len) len ++;
+        }
+        return n - len;
     }
 };
 ```
